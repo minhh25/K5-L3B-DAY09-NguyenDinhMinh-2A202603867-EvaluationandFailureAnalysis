@@ -13,11 +13,16 @@ written by this script only -- never edit reports/ by hand.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import subprocess
+from importlib.metadata import version
+from zoneinfo import ZoneInfo
 import json
 import platform
+import re
 import tempfile
 import time
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -81,9 +86,18 @@ def run_eval(shape: str, spec: dict[str, Any], seeds: list[int] | None = None) -
     items = evalset.load_jsonl(Path(spec["eval_set"]))
     labels = json.loads(Path(spec["labels"]).read_text(encoding="utf-8"))
     world, claims = load_world(spec)
-    seeds = list(seeds or spec["seeds"])
+    seeds = list(spec["seeds"] if seeds is None else seeds)
+    if not seeds or any(type(s) is not int for s in seeds) or len(set(seeds)) != len(seeds):
+        raise ValueError("seeds must be a nonempty list of distinct integers")
+    if len({it["item_id"] for it in items}) != len(items):
+        raise ValueError("eval set has duplicate item IDs")
     slices_of = {it["item_id"]: list(it.get("slices") or []) for it in items}
-    metric_ids = [m["id"] for m in spec["metrics"] if m["id"] in GRADERS]
+    declared = [m["id"] for m in spec["metrics"]]
+    unknown = [mid for mid in declared if mid not in GRADERS and mid not in {"pass_5", "cost_per_success"}
+               and not re.fullmatch(r"pass_(?:at|hat)_\d+", mid)]
+    if unknown or len(set(declared)) != len(declared):
+        raise ValueError(f"unknown or duplicate metric definitions: {unknown or declared}")
+    metric_ids = [mid for mid in declared if mid in GRADERS]
     cases = [Case(name=f"{it['item_id']}@{s}", inputs={"claim_id": it["claim_id"], "seed": s},
                   expected_output=labels[it["claim_id"]], metadata={"item_id": it["item_id"], "seed": s})
              for it in items for s in seeds]
@@ -103,21 +117,37 @@ def run_eval(shape: str, spec: dict[str, Any], seeds: list[int] | None = None) -
                      "slices": slices_of.get(c.metadata["item_id"], []), **scores,
                      "cost": float(c.output["result"].get("cost_estimate") or 0.0)})
     failures = [f"{c.name}:{f.name}:{f.error_message[:80]}" for c in report.cases for f in c.evaluator_failures]
+    failures += [f"task:{f.name}:{f.error_message[:80]}" for f in report.failures]
     eval_set_sha = evalset.sha12(Path(spec["eval_set"]))
-    run_id = f"E-{shape}-{date.today():%Y%m%d}-{eval_set_sha[:4]}"
+    run_date = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+    run_id = f"E-{shape}-{run_date:%Y%m%d}-{eval_set_sha[:4]}"
+    revision = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    sources = sorted([*Path("lab8").rglob("*.py"), *Path("lab9").glob("*.py"), *Path("config").glob("*.yaml")])
+    source_sha = hashlib.sha256(b"".join(str(p).encode() + b"\0" + p.read_bytes() for p in sources)).hexdigest()
     return {"run_id": run_id, "shape": shape,
             "manifest": {"eval_set": spec["eval_set"], "eval_set_sha": eval_set_sha, "items": len(items),
                          "seeds": seeds, "metric_spec_version": spec["metric_spec_version"],
+                         "eval_set_version": spec["eval_set_version"], "metric_spec": spec, "code_revision": revision,
+                         "source_sha256": source_sha, "labels_sha": evalset.sha12(Path(spec["labels"])),
+                         "generated_at": run_date.isoformat(),
+                         "dependencies": {name: version(name) for name in ("numpy", "scipy", "pydantic-evals", "PyYAML")},
                          "llm": "MockLLM", "python": platform.python_version()},
             "rows": rows, "evaluator_failures": failures,
-            "metrics": aggregate(rows, metric_ids, k_values=spec.get("pass_k", []))}
+            "metrics": aggregate(rows, metric_ids, k_values=sorted(set(spec.get("pass_k", [])) |
+                                 {int(mid.rsplit("_", 1)[1]) for mid in declared
+                                  if re.fullmatch(r"pass_(?:at|hat)_\d+", mid)}),
+                                 safety_ids={m["id"] for m in spec["metrics"] if m.get("kind") == "safety"})}
 
 
-def aggregate(rows: list[dict[str, Any]], metric_ids: list[str], k_values: list[int] = ()) -> dict[str, Any]:
+def aggregate(rows: list[dict[str, Any]], metric_ids: list[str], k_values: list[int] = (), *,
+              safety_ids: set[str] = frozenset({"secret_leak", "approval_bypass"})) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for m in metric_ids:
-        vals = [r[m] for r in rows if r[m] is not None]
-        if m in ("secret_leak", "approval_bypass"):
+        vals = [r.get(m) for r in rows]
+        if not vals or any(v is None for v in vals):
+            out[m] = None  # evaluator failure remains visible; never average it away
+            continue
+        if m in safety_ids:
             out[m] = sum(vals)                       # safety: a count, must be 0
         else:
             out[m] = round(sum(vals) / len(vals), 4) if vals else None
@@ -126,17 +156,14 @@ def aggregate(rows: list[dict[str, Any]], metric_ids: list[str], k_values: list[
         by_item.setdefault(r["item_id"], []).append(bool(r.get("pass_rate")))
     out["pass_5"] = round(sum(all(v) for v in by_item.values()) / len(by_item), 4) if by_item else None
     # pass@k / pass^k (M6): mean over items of the unbiased per-item estimate.
-    # Left as None until stats.pass_at_k / stats.pass_hat_k are implemented.
+    # Undefined estimates remain missing and are rejected by the integrity gate.
     for k in k_values:
         for name, fn in (("pass_at", stats.pass_at_k), ("pass_hat", stats.pass_hat_k)):
             if not by_item or min(len(v) for v in by_item.values()) < k:
                 out[f"{name}_{k}"] = None            # undefined with fewer than k runs per item
                 continue
-            try:
-                est = [fn(len(v), sum(v), k) for v in by_item.values()]
-                out[f"{name}_{k}"] = round(sum(est) / len(est), 4) if est else None
-            except NotImplementedError:
-                out[f"{name}_{k}"] = None
+            est = [fn(len(v), sum(v), k) for v in by_item.values()]
+            out[f"{name}_{k}"] = round(sum(est) / len(est), 4) if est else None
     passes = sum(bool(r.get("pass_rate")) for r in rows)
     out["cost_per_success"] = round(sum(r["cost"] for r in rows) / passes, 4) if passes else None
     return out
@@ -145,12 +172,19 @@ def aggregate(rows: list[dict[str, Any]], metric_ids: list[str], k_values: list[
 def per_item(report: dict[str, Any], metric: str, slice_name: str | None = None) -> dict[str, float]:
     """Mean over seeds for each item -- the unit the paired bootstrap resamples.
     With slice_name, keep only rows whose item carries that slice tag (M5)."""
+    derived = re.fullmatch(r"pass_(at|hat)_(\d+)", metric)
     acc: dict[str, list[float]] = {}
     for r in report["rows"]:
         if slice_name is not None and slice_name not in (r.get("slices") or []):
             continue
-        if r.get(metric) is not None:
-            acc.setdefault(r["item_id"], []).append(float(r[metric]))
+        field = "pass_rate" if derived or metric == "pass_5" else metric
+        if r.get(field) is not None:
+            acc.setdefault(r["item_id"], []).append(float(r[field]))
+    if derived:
+        fn = stats.pass_at_k if derived[1] == "at" else stats.pass_hat_k
+        return {key: fn(len(vals), int(sum(vals)), int(derived[2])) for key, vals in acc.items()}
+    if metric == "pass_5":
+        return {key: float(all(vals)) for key, vals in acc.items()}
     return {k: sum(v) / len(v) for k, v in acc.items()}
 
 

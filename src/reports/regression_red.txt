@@ -1,0 +1,19 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________________________ test_regression_db_fact_kept _________________________
+
+    def test_regression_db_fact_kept():
+        """Set LAB9_REGRESSION_SHAPE=seeded_regression to show red; fixed is green."""
+        case=investigate(os.environ.get('LAB9_REGRESSION_SHAPE','fixed'),'C-002',11)
+>       assert DbFactKept().evaluate(SimpleNamespace(output=case['trial'])).value is True
+E       assert False is True
+E        +  where False = EvaluationReason(value=False, reason='1 override event(s)').value
+E        +    where EvaluationReason(value=False, reason='1 override event(s)') = evaluate(namespace(output={'result': {'run_id': 'R-seeded_regression-C-002-s11', 'claim_id': 'C-002', 'shape': 'seeded_regressi...'text': 'Dạ, LogiX đã hoàn 20.000đ cho đơn O-202.'}}], 'lab8_pass': False, 'lab8_reason': 'status resolved != denied'}))
+E        +      where evaluate = DbFactKept().evaluate
+E        +        where DbFactKept() = DbFactKept()
+E        +      and   namespace(output={'result': {'run_id': 'R-seeded_regression-C-002-s11', 'claim_id': 'C-002', 'shape': 'seeded_regressi...'text': 'Dạ, LogiX đã hoàn 20.000đ cho đơn O-202.'}}], 'lab8_pass': False, 'lab8_reason': 'status resolved != denied'}) = SimpleNamespace(output={'blob': '{"run_id": "R-seeded_regression-C-002-s11", "claim_id": "C-002", "shape": "seeded_regression", "seed": 11, "...t': 'Dạ, LogiX đã hoàn 20.000đ cho đơn O-202.'}}], 'lab8_pass': False, 'lab8_reason': 'status resolved != denied', ...})
+
+tests/test_lab9_reliability.py:96: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_lab9_reliability.py::test_regression_db_fact_kept - assert ...
+1 failed in 1.40s

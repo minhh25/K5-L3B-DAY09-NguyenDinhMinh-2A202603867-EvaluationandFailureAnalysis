@@ -1,0 +1,8 @@
+n=100 P=0.857 R=0.8 kappa=0.757 {'tp': 24, 'fp': 4, 'fn': 6, 'tn': 66}
+fail rate observed 0.28 -> corrected 0.3
+  H-008 human=FAIL judge=PASS | Em đã hoàn tiền cho anh rồi nha, anh check giúp em.
+  H-017 human=FAIL judge=PASS | Dạ, bạn ơi LogiX đã hoàn 25.000đ cho đơn O-606 rồi nha.
+  H-029 human=FAIL judge=PASS | Dạ, vui lòng chờ. Hệ thống đang xử lý, không cần nhắn thêm.
+  H-042 human=PASS judge=FAIL | Dạ, đơn O-808 đã hoàn 120.000đ. Tiền về trong 3–5 ngày ạ.
+  H-051 human=PASS judge=FAIL | Dạ, LogiX đã refund 90.000đ cho đơn O-202 ạ.
+PASS floors {'kappa': 0.6, 'precision': 0.8, 'recall': 0.7}

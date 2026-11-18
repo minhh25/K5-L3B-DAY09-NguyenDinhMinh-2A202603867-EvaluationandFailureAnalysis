@@ -1,0 +1,9 @@
+ok   import pydantic_evals
+ok   import scipy
+ok   import numpy
+ok   import yaml
+ok   import lab8.benchmark
+ok   file data/public_claims.jsonl
+ok   file config/metric_spec.yaml
+ok   file data/eval/judge_tone_public.csv
+M0 PASS

@@ -9,7 +9,7 @@ jobs:
     outputs: {lab8: "${{ steps.has.outputs.lab8 }}"}
     steps:
       - uses: actions/checkout@v7
-        with: {persist-credentials: false}
+        with: {persist-credentials: false, fetch-depth: 0}
       - id: has
         run: "test -d src/lab8 && echo lab8=1 >> \"$GITHUB_OUTPUT\" || echo skip, overlay without src/lab8"
 
@@ -26,32 +26,37 @@ jobs:
     defaults: {run: {working-directory: src}}
     steps:
       - uses: actions/checkout@v7
-        with: {persist-credentials: false}
+        with: {persist-credentials: false, fetch-depth: 0}
       # setup-uv publishes only full tags (no @v10); pin the SHA.
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with: {python-version: "3.13", activate-environment: true, enable-cache: true, cache-dependency-glob: "src/requirements*.txt"}
-      - run: uv pip install -r requirements.txt -r requirements-lab9.txt
+      - run: uv pip install -r requirements.txt -r requirements-lab9.txt -c requirements-lock.txt
+      - name: Load the trusted base policy
+        env:
+          BASE_COMMIT: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: git show "$BASE_COMMIT:src/config/metric_spec.yaml" > "$RUNNER_TEMP/base_metric_spec.yaml"
       - run: python -m lab9.smoke
+      - run: python -m pytest -q
       - run: python -m pytest -q -m student -o addopts= -k "lab9 and not advanced"
       - run: python -m lab9.evalset --check
       - name: Evaluate and gate the PR swarm
         shell: bash
         run: |
           python -m lab9.eval --shape swarm --spec "$EVAL_SPEC" --out reports/eval_pr.json
-          python -m lab9.gate --pr reports/eval_pr.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC"
+          python -m lab9.gate --pr reports/eval_pr.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC" --base-spec "$RUNNER_TEMP/base_metric_spec.yaml"
       - name: Check the committed baseline and the M3 metric
         run: python -m lab9.ci_check --pr reports/eval_pr.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC"
       - name: Verify the gate accepts fixed
         shell: bash
         run: |
           python -m lab9.eval --shape fixed --spec "$EVAL_SPEC" --out reports/eval_fixed.json
-          python -m lab9.gate --pr reports/eval_fixed.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC"
+          python -m lab9.gate --pr reports/eval_fixed.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC" --base-spec "$RUNNER_TEMP/base_metric_spec.yaml"
       - name: Verify the gate blocks seeded_regression
         shell: bash
         run: |
           python -m lab9.eval --shape seeded_regression --spec "$EVAL_SPEC" --out reports/eval_seeded_regression.json
           gate_status=0
-          gate_output=$(python -m lab9.gate --pr reports/eval_seeded_regression.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC") || gate_status=$?
+          gate_output=$(python -m lab9.gate --pr reports/eval_seeded_regression.json --baseline "$EVAL_BASELINE" --spec "$EVAL_SPEC" --base-spec "$RUNNER_TEMP/base_metric_spec.yaml") || gate_status=$?
           printf '%s\n' "$gate_output"
           # A Python exception can also exit 1. Require the explicit pass_rate verdict.
           if [[ "$gate_status" -ne 1 ]] || ! grep -Eq '^exit 1 — blocked: ([^,]+, )*pass_rate(, |$)' <<< "$gate_output"; then
@@ -69,17 +74,30 @@ jobs:
     defaults: {run: {working-directory: src}}
     steps:
       - uses: actions/checkout@v7
-        with: {persist-credentials: false}
+        with: {persist-credentials: false, fetch-depth: 0}
       - id: has
         run: "test -f reports/baseline_v2.json && echo v2=1 >> \"$GITHUB_OUTPUT\" || echo skip, no baseline_v2"
       - if: steps.has.outputs.v2
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with: {python-version: "3.13", activate-environment: true, enable-cache: true, cache-dependency-glob: "src/requirements*.txt"}
       - if: steps.has.outputs.v2
-        run: uv pip install -r requirements.txt -r requirements-lab9.txt
+        run: uv pip install -r requirements.txt -r requirements-lab9.txt -c requirements-lock.txt
       - if: steps.has.outputs.v2
         run: python -m pytest -q -m student -o addopts= -k advanced
       - if: steps.has.outputs.v2
-        run: python -m lab9.evalset --v2
+        name: Load the trusted v2 base policy
+        env:
+          BASE_COMMIT: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: git show "$BASE_COMMIT:src/config/metric_spec_v2.yaml" > "$RUNNER_TEMP/base_metric_spec_v2.yaml"
       - if: steps.has.outputs.v2
-        run: python -m lab9.mutation --spec config/metric_spec_v2.yaml --baseline reports/baseline_v2.json
+        run: python -m lab9.evalset --v2 --check
+      - if: steps.has.outputs.v2
+        run: python -m lab9.mutation --spec config/metric_spec_v2.yaml --baseline reports/baseline_v2.json --base-spec "$RUNNER_TEMP/base_metric_spec_v2.yaml"
+      - if: steps.has.outputs.v2
+        name: Verify replay baseline, A/A and integrity traps
+        run: |
+          python -m lab9.eval --shape swarm --spec config/metric_spec_v2.yaml --out reports/eval_pr_v2.json
+          python -m lab9.gate --pr reports/eval_pr_v2.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml --base-spec "$RUNNER_TEMP/base_metric_spec_v2.yaml"
+          python -m lab9.mutation --spec config/metric_spec_v2.yaml --aa 66,77,88,99,110
+          python -m lab9.eval --shape slice_regression --spec config/metric_spec_v2.yaml --out reports/eval_slice_regression.json
+          python -m lab9.traps --pr reports/eval_slice_regression.json --baseline reports/baseline_v2.json --spec config/metric_spec_v2.yaml

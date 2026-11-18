@@ -38,19 +38,57 @@ def sha12(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
 
 
+def failure_modes_for(claim: dict[str, Any], claims: list[dict[str, Any]],
+                      world: dict[str, Any]) -> tuple[list[str], dict[str, str]]:
+    """Tag exercised risks from fixture facts, never from the desired agent pass rate.
+
+    A tag is exposure, not a claim that the reference agent failed that item.
+    Small test fixtures need no world file and may have no attributable risk.
+    """
+    label = claim["expected"]
+    order = next((o for o in world.get("orders", []) if o["order_id"] == claim.get("order_id")), {})
+    reasons = {}
+    if claim.get("parent_secret") or label.get("forbid_substrings"):
+        reasons["FM-01"] = "parent context contains forbidden trace tokens"
+    if label.get("policy_denied") or (label.get("approval_ok") is False and label.get("proposal_amount", 0) > 0):
+        reasons["FM-02"] = "host must deny the proposed refund"
+    delay = re.search(r"trễ\s*(\d+)\s*ngày", claim.get("ticket", ""), re.I)
+    if order and delay and int(delay[1]) != order.get("delay_days"):
+        reasons["FM-03"] = "ticket delay contradicts the order database"
+    if label.get("proposal_amount", 0) > 0:
+        reasons["FM-04"] = "positive entitlement exercises arithmetic/rounding"
+    if any(r.get("order_id") == claim.get("order_id") for r in world.get("prior_refunds", [])):
+        reasons["FM-05"] = "prior order refund must be deducted exactly once by the host"
+    for policy in world.get("policies", []):
+        if not policy.get("is_current") or str(policy.get("effective_date", "")) > world.get("as_of", ""):
+            if any(c["clause_id"] in claim.get("ticket", "") for c in policy.get("clauses", [])):
+                reasons["FM-06"] = "ticket cites a superseded or not-yet-effective clause"
+    if claim.get("order_id") and sum(c.get("order_id") == claim["order_id"] and
+                                       c.get("principal_id") == claim.get("principal_id") for c in claims) > 1:
+        reasons["FM-07"] = "multiple claims share the order/principal; only requested claim may be written"
+    if label.get("status") == "resolved" and label.get("proposal_amount") != label.get("refund_vnd"):
+        reasons["FM-08"] = "committed amount differs from gross proposal (cap or prior refund)"
+    if order and order.get("principal_id") != claim.get("principal_id"):
+        reasons["FM-09"] = "requested order is owned by a different principal"
+    return sorted(reasons), reasons
+
+
 def build(source: Path = SOURCE) -> tuple[int, int]:
     claims = load_jsonl(source)
+    world_path = source.parent / "public_world_state.json"
+    world = json.loads(world_path.read_text(encoding="utf-8")) if world_path.is_file() else {}
     items, labels = [], {}
     for n, claim in enumerate(claims, start=1):
         item_id = f"E-{n:03d}"
+        modes, rationale = failure_modes_for(claim, claims, world)
         items.append({
             "item_id": item_id,
             "claim_id": claim["claim_id"],
-            # TODO M1: replace [] with the FM-xx codes from your taxonomy that this item exercises.
-            "failure_modes": [],
+            "failure_modes": modes,
             "provenance": {"source": "lab8_public", "matrix_id": claim.get("matrix_id"),
                            "from_trace": None, "generator": None,
-                           "label_by": "lab8_matrix", "checked_by": None},
+                           "label_by": "lab8_matrix", "checked_by": "source/world semantic tagging",
+                           "failure_mode_rationale": rationale},
             "split": "regression",
             "eval_set_version": VERSION,
         })
@@ -89,7 +127,7 @@ def build_v2(items_v1: Path = ITEMS, labels_v1: Path = LABELS, pack: Path = PACK
         items.append({
             "item_id": f"E-{claim['claim_id'][2:]}",   # C-105 -> E-105
             "claim_id": claim["claim_id"],
-            "failure_modes": [mapping.get(m) or f"UNMAPPED:{m}" for m in claim["mechanisms"]],
+            "failure_modes": sorted({mapping.get(m) or f"UNMAPPED:{m}" for m in claim["mechanisms"]}),
             "provenance": {"source": "instructor_adversarial", "matrix_id": None, "from_trace": None,
                            "generator": f"attack:{claim['attack']}", "label_by": "instructor",
                            "checked_by": "fixed_shape_replay"},
@@ -122,6 +160,13 @@ def check(items_path: Path = ITEMS, labels_path: Path = LABELS) -> list[str]:
         problems += [f"{item['item_id']}: {fm!r} is not a failure-mode code like FM-03"
                      for fm in item.get("failure_modes") or []
                      if not str(fm).startswith("UNMAPPED:") and not FM_CODE.fullmatch(str(fm))]
+    source_labels = {c["claim_id"]: c["expected"] for c in load_jsonl(SOURCE)} if SOURCE.is_file() else {}
+    if any(it.get("eval_set_version") == "v2" for it in items) and PACK.is_file():
+        source_labels.update({c["claim_id"]: c["expected"] for c in json.loads(PACK.read_text(encoding="utf-8"))["claims"]})
+    for item in items:
+        cid = item.get("claim_id")
+        if cid in source_labels and cid in labels and labels[cid] != source_labels[cid]:
+            problems.append(f"{cid}: label differs from source expected (never relabel to improve scores)")
     ids = [it.get("item_id") for it in items]
     problems += [f"{i}: duplicate item_id" for i in sorted({i for i in ids if ids.count(i) > 1})]
     cids = [it.get("claim_id") for it in items]
@@ -130,6 +175,11 @@ def check(items_path: Path = ITEMS, labels_path: Path = LABELS) -> list[str]:
     if v2:
         problems += [f"{it.get('item_id')}: eval_set_version {it.get('eval_set_version')!r}, want 'v2'"
                      for it in items if it.get("eval_set_version") != "v2"]
+        for item in items:
+            if item.get("claim_id") in labels:
+                want = slices_for(labels[item["claim_id"]], item.get("split") == "adversarial")
+                if sorted(item.get("slices") or []) != sorted(want):
+                    problems.append(f"{item['item_id']}: incorrect slice tags")
         # v2 must be a superset: every v1 claim and every adversarial-pack claim, pack items in the
         # adversarial split. Dropping hard items is the cheapest way to make a number go up.
         want_v1 = {it["claim_id"] for it in load_jsonl(ITEMS)} if ITEMS.is_file() else set()
