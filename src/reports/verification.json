@@ -1,0 +1,704 @@
+{
+  "generated_at": "2026-11-18T10:57:28.803904+07:00",
+  "tests": {
+    "total": 407,
+    "passed": 221,
+    "failed": 186,
+    "all_failures_are_untouched_day8_stubs": true
+  },
+  "checks": [
+    {
+      "name": "smoke",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.smoke"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/smoke.txt"
+    },
+    {
+      "name": "evalset_v1",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.evalset",
+        "--build",
+        "--check"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/evalset_v1.txt"
+    },
+    {
+      "name": "evalset_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.evalset",
+        "--v2",
+        "--build",
+        "--check"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/evalset_v2.txt"
+    },
+    {
+      "name": "host_tests",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/host_tests.txt"
+    },
+    {
+      "name": "core_tests",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-m",
+        "student",
+        "-o",
+        "addopts=",
+        "-k",
+        "lab9 and not advanced"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/core_tests.txt"
+    },
+    {
+      "name": "advanced_tests",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-m",
+        "student",
+        "-o",
+        "addopts=",
+        "-k",
+        "advanced"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/advanced_tests.txt"
+    },
+    {
+      "name": "all_tests",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-o",
+        "addopts=",
+        "--tb=no",
+        "--junitxml=reports/full_tests.xml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/all_tests.txt"
+    },
+    {
+      "name": "regression_red",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-m",
+        "student",
+        "-o",
+        "addopts=",
+        "tests/test_lab9_reliability.py::test_regression_db_fact_kept"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/regression_red.txt"
+    },
+    {
+      "name": "regression_green",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-m",
+        "student",
+        "-o",
+        "addopts=",
+        "tests/test_lab9_reliability.py::test_regression_db_fact_kept"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/regression_green.txt"
+    },
+    {
+      "name": "judge_tone",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.judge",
+        "--csv",
+        "data/eval/judge_tone_public.csv",
+        "--audit",
+        "5"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/judge_tone.txt"
+    },
+    {
+      "name": "judge_helpful",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.judge",
+        "--csv",
+        "data/eval/judge_helpful_public.csv",
+        "--audit",
+        "5"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/judge_helpful.txt"
+    },
+    {
+      "name": "detection",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.mutation",
+        "--detect"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/detection.txt"
+    },
+    {
+      "name": "failure_evidence",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.evidence"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/failure_evidence.txt"
+    },
+    {
+      "name": "baseline_v1",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "swarm",
+        "--spec",
+        "config/metric_spec.yaml",
+        "--out",
+        "reports/baseline_v1.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/baseline_v1.txt"
+    },
+    {
+      "name": "gate_self_v1",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/baseline_v1.json",
+        "--baseline",
+        "reports/baseline_v1.json",
+        "--spec",
+        "config/metric_spec.yaml"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/gate_self_v1.txt"
+    },
+    {
+      "name": "eval_fixed",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "fixed",
+        "--spec",
+        "config/metric_spec.yaml",
+        "--out",
+        "reports/eval_fixed.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_fixed.txt"
+    },
+    {
+      "name": "gate_fixed",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/eval_fixed.json",
+        "--baseline",
+        "reports/baseline_v1.json",
+        "--spec",
+        "config/metric_spec.yaml"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/gate_fixed.txt"
+    },
+    {
+      "name": "eval_seeded_regression",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "seeded_regression",
+        "--spec",
+        "config/metric_spec.yaml",
+        "--out",
+        "reports/eval_seeded_regression.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_seeded_regression.txt"
+    },
+    {
+      "name": "gate_seeded_regression",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/eval_seeded_regression.json",
+        "--baseline",
+        "reports/baseline_v1.json",
+        "--spec",
+        "config/metric_spec.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/gate_seeded_regression.txt"
+    },
+    {
+      "name": "eval_pr",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "swarm",
+        "--spec",
+        "config/metric_spec.yaml",
+        "--out",
+        "reports/eval_pr.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_pr.txt"
+    },
+    {
+      "name": "baseline_sanity",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.ci_check",
+        "--pr",
+        "reports/eval_pr.json",
+        "--baseline",
+        "reports/baseline_v1.json",
+        "--spec",
+        "config/metric_spec.yaml"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/baseline_sanity.txt"
+    },
+    {
+      "name": "baseline_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "swarm",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--out",
+        "reports/baseline_v2.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/baseline_v2.txt"
+    },
+    {
+      "name": "gate_self_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/baseline_v2.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/gate_self_v2.txt"
+    },
+    {
+      "name": "eval_fixed_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "fixed",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--out",
+        "reports/eval_fixed_v2.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_fixed_v2.txt"
+    },
+    {
+      "name": "gate_fixed_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/eval_fixed_v2.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/gate_fixed_v2.txt"
+    },
+    {
+      "name": "eval_honest_refactor_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "honest_refactor",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--out",
+        "reports/eval_honest_refactor_v2.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_honest_refactor_v2.txt"
+    },
+    {
+      "name": "gate_honest_refactor_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/eval_honest_refactor_v2.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/gate_honest_refactor_v2.txt"
+    },
+    {
+      "name": "eval_seeded_regression_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "seeded_regression",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--out",
+        "reports/eval_seeded_regression_v2.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_seeded_regression_v2.txt"
+    },
+    {
+      "name": "gate_seeded_regression_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/eval_seeded_regression_v2.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/gate_seeded_regression_v2.txt"
+    },
+    {
+      "name": "eval_slice_regression",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "slice_regression",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--out",
+        "reports/eval_slice_regression.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_slice_regression.txt"
+    },
+    {
+      "name": "gate_slice_regression",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/eval_slice_regression.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/gate_slice_regression.txt"
+    },
+    {
+      "name": "eval_flaky_regression_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.eval",
+        "--shape",
+        "flaky_regression",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--out",
+        "reports/eval_flaky_regression_v2.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/eval_flaky_regression_v2.txt"
+    },
+    {
+      "name": "gate_flaky_regression_v2",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/eval_flaky_regression_v2.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/gate_flaky_regression_v2.txt"
+    },
+    {
+      "name": "mutation",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.mutation",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--baseline",
+        "reports/baseline_v2.json"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/mutation.txt"
+    },
+    {
+      "name": "aa",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.mutation",
+        "--spec",
+        "config/metric_spec_v2.yaml",
+        "--aa",
+        "66,77,88,99,110"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/aa.txt"
+    },
+    {
+      "name": "traps",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.traps",
+        "--pr",
+        "reports/eval_slice_regression.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "as_expected": true,
+      "log": "reports/traps.txt"
+    },
+    {
+      "name": "trap_evaluator_errors_as_nan",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/traps/evaluator_errors_as_nan.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/trap_evaluator_errors_as_nan.txt"
+    },
+    {
+      "name": "trap_dropped_failing_rows",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/traps/dropped_failing_rows.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/trap_dropped_failing_rows.txt"
+    },
+    {
+      "name": "trap_cherry_picked_seeds",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/traps/cherry_picked_seeds.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/trap_cherry_picked_seeds.txt"
+    },
+    {
+      "name": "trap_loosened_spec",
+      "command": [
+        "/Users/minh25/Documents/AI Thuc chien Vin/LAB/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/.venv/bin/python",
+        "-m",
+        "lab9.gate",
+        "--pr",
+        "reports/traps/loosened_spec.json",
+        "--baseline",
+        "reports/baseline_v2.json",
+        "--spec",
+        "reports/traps/loosened_spec.spec.yaml",
+        "--base-spec",
+        "config/metric_spec_v2.yaml"
+      ],
+      "exit_code": 1,
+      "expected_exit": 1,
+      "as_expected": true,
+      "log": "reports/trap_loosened_spec.txt"
+    },
+    {
+      "name": "day8_immutable",
+      "upstream_commit": "034c6c421c198dae67a9211d15e2587d5a378972",
+      "differences": [],
+      "as_expected": true
+    }
+  ],
+  "all_expected": true
+}
