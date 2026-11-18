@@ -39,6 +39,6 @@ Các JSON report và log được sinh bằng script rồi force-add có chọn 
 
 ## GitHub và LMS
 
-PR phải từ `starter/d09` vào `main` của `minhh25/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis`. Chỉ merge sau khi `eval-gate` và `eval-gate-v2` xanh. Trạng thái và URL PR sẽ được ghi sau khi quan sát trên GitHub; tài liệu này không thay cho kết quả CI.
+PR phải từ `starter/d09` vào `main` của `minhh25/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis`. Chỉ merge sau khi `eval-gate` và `eval-gate-v2` xanh. Đã mở [PR #1](https://github.com/minhh25/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/pull/1) đúng base repository. [CI run 44234218433](https://github.com/minhh25/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/actions/runs/44234218433) trên commit `89f5d5cf7bd2e44154e78154b95e152ea33afb8a` đã hoàn thành: detect, eval-gate và eval-gate-v2 đều success. Commit cập nhật checklist phải được CI xác nhận riêng trước merge; liên kết PR hiển thị kết quả mới nhất.
 
 Sau merge, nộp link repo cá nhân trên LMS và kiểm tra hạn nộp theo ca. Phiên làm việc này không có phiên đăng nhập LMS hoặc bằng chứng hạn nộp nên không tự xác nhận đã nộp LMS.

@@ -12,13 +12,15 @@ Làm thêm Advanced/Expert sau buổi: tiếp tục trên nhánh, mở PR mới 
 - [x] `docs/failure_taxonomy.md`, `docs/trace_case.md` (1 case + regression test), `docs/judge_audit.md`, `docs/eval_card.md`, `docs/PRD_v1.1.md`
 - [x] `src/reports/baseline_v1.json`, `eval_fixed.json`, `eval_seeded_regression.json` (sinh bằng script, commit bằng `git add -f`)
 - [x] `harness_map.yaml` có section `eval` (mẫu: `src/harness_map.eval.yaml`)
-- [ ] Job `eval-gate` xanh; dán output gate exit 1 của `seeded_regression` vào mô tả PR
+- [x] Job `eval-gate` xanh; dán output gate exit 1 của `seeded_regression` vào mô tả PR
 
 ## Advanced / Expert (tới hạn nộp)
 - [x] `config/fm_map.yaml`, `config/metric_spec_v2.yaml` (slices, `pass_hat_5`, metric FM-08), `stats.pass_at_k/pass_hat_k`, `gate.slice_check`, `gate.integrity_check`
 - [x] `src/data/eval/eval_set_v2.jsonl` + `labels_v2.json` (sinh bằng `evalset --v2 --build`)
-- [ ] `src/reports/baseline_v2.json` (đã sinh bằng script; xác nhận job `eval-gate-v2` sau khi mở PR)
-- [ ] Mô tả PR: output `lab9.mutation` (scorecard + `--aa`) và 4 dòng `exit 1` của các trap
+- [x] `src/reports/baseline_v2.json` (sinh bằng script, force-add; job `eval-gate-v2` đã chạy và xanh)
+- [x] Mô tả PR: output `lab9.mutation` (scorecard + `--aa`) và 4 dòng `exit 1` của các trap
 - [x] `docs/eval_card.md` thêm mục v2: ngưỡng chọn từ A/A, slice nào bắt lỗi nào, và giới hạn cỡ mẫu (bug 1/3 seed không phát hiện ổn định với 5 seed)
 
-Bằng chứng local và giới hạn: [docs/submission_evidence.md](docs/submission_evidence.md). Các ô CI/PR chỉ đánh dấu sau khi kiểm chứng trên GitHub.
+Bằng chứng local và giới hạn: [docs/submission_evidence.md](docs/submission_evidence.md). Các ô CI/PR đã được kiểm chứng trên [PR #1](https://github.com/minhh25/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/pull/1).
+
+CI bằng chứng: [run 44234218433](https://github.com/minhh25/K5-L3B-DAY09-NguyenDinhMinh-2A202603867-EvaluationandFailureAnalysis/actions/runs/44234218433), commit `89f5d5cf7bd2e44154e78154b95e152ea33afb8a`: `detect`, `eval-gate`, `eval-gate-v2` đều success. Commit checklist sau đó vẫn cần qua CI trước merge.
