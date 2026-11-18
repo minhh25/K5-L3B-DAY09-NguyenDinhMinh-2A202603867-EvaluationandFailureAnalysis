@@ -170,3 +170,45 @@ def test_judge_undefined_kappa_fails_calibration(tmp_path):
     assert result['passed'] is False
     assert result['kappa'] is None
     assert result['calibration_errors']
+
+
+@pytest.mark.parametrize('section,value', [('manifest',None),('rows',None),('metrics',[]),('evaluator_failures',None)])
+def test_advanced_malformed_baseline_fails_closed(section,value):
+    rep,spec=fixture_report();base=copy.deepcopy(rep);base[section]=value
+    assert gate.check(rep,base,spec)[0]==['integrity']
+
+
+@pytest.mark.parametrize('mutation', ['threshold_none','metric_id_list','bootstrap_none','blocking_text','slice_ci_text'])
+def test_advanced_malformed_policy_fails_closed(mutation):
+    rep,spec=fixture_report()
+    if mutation=='threshold_none':spec['metrics'][0]['threshold']=None
+    elif mutation=='metric_id_list':spec['metrics'][0]['id']=[]
+    elif mutation=='bootstrap_none':spec['bootstrap']=None
+    elif mutation=='blocking_text':spec['metrics'][0]['blocking']='false'
+    elif mutation=='slice_ci_text':spec['slices'][0]['no_significant_drop']='false'
+    assert gate.check(rep,rep,spec)[0]==['integrity']
+
+
+def test_advanced_derived_metric_supports_paired_and_slice_checks():
+    rep,spec=fixture_report()
+    rep['metrics']['pass_hat_2']=1.0
+    spec['metrics'].append({'id':'pass_hat_2','kind':'capability','blocking':True,
+                            'threshold':{'min':.8,'no_significant_drop':True}})
+    spec['slices'].append({'name':'cash','metric':'pass_hat_2','min':.8,'blocking':True,'no_significant_drop':True})
+    assert gate.check(rep,rep,spec,spec)[0]==[]
+    pr=copy.deepcopy(rep)
+    for row in pr['rows']:
+        if row['seed']==7:row['pass_rate']=False
+    pr['metrics']={'pass_rate':.5,'pass_hat_2':0.0}
+    blocked,_=gate.check(pr,rep,spec,spec)
+    assert 'pass_hat_2' in blocked
+    assert 'slice:cash/pass_hat_2' in blocked
+
+
+def test_advanced_seed_reordering_preserves_plan_and_embedded_ratchet():
+    rep,spec=fixture_report();spec['seeds']=[7,8]
+    rep['manifest']['metric_spec']=copy.deepcopy(spec)
+    reordered=copy.deepcopy(spec);reordered['seeds'].reverse()
+    assert gate.check(rep,rep,reordered)[0]==[]
+    reordered['metrics'][0]['threshold']['min']=.5
+    assert gate.check(rep,rep,reordered)[0]==['integrity']

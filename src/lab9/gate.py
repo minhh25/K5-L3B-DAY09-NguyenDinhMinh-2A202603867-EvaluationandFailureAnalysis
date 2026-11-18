@@ -11,7 +11,7 @@ from pathlib import Path
 
 from lab8.console import utf8_stdio
 from lab9 import evalset, stats
-from lab9.eval import SPEC, aggregate, load_spec, per_item
+from lab9.eval import SPEC, load_spec, per_item
 
 
 def _finite(value) -> bool:
@@ -20,6 +20,49 @@ def _finite(value) -> bool:
 
 def _derived(mid: str) -> bool:
     return mid in {"pass_5", "cost_per_success"} or bool(re.fullmatch(r"pass_(?:at|hat)_\d+", mid))
+
+
+def _policy_problems(spec: dict) -> list[str]:
+    """Validate policy types before comparisons; malformed policy is not permission."""
+    if not isinstance(spec, dict) or not isinstance(spec.get("metrics"), list) or not spec["metrics"]:
+        return ["spec requires nonempty metric definitions"]
+    if any(not isinstance(m, dict) or not isinstance(m.get("id"), str) or not m["id"] for m in spec["metrics"]):
+        return ["invalid metric identity"]
+    ids = [m["id"] for m in spec["metrics"]]
+    errors = ["duplicate metric definition"] if len(set(ids)) != len(ids) else []
+    slices = spec.get("slices", [])
+    if not isinstance(slices, list) or any(not isinstance(s, dict) or not isinstance(s.get("name"), str)
+                                         or not s["name"] or s.get("metric") not in ids for s in slices):
+        return errors + ["invalid slice definitions"]
+    if len({(s["name"], s["metric"]) for s in slices}) != len(slices):
+        errors.append("duplicate slice definition")
+    for definition in [*spec["metrics"], *slices]:
+        threshold = definition.get("threshold", {}) if "id" in definition else definition
+        if not isinstance(threshold, dict):
+            errors.append("threshold must be an object")
+            continue
+        for key in ("min", "max", "max_increase"):
+            if key in threshold and (isinstance(threshold[key], bool) or not _finite(threshold[key])):
+                errors.append(f"invalid threshold {key}")
+        for container, key in ((threshold, "no_significant_drop"), (definition, "blocking")):
+            if key in container and type(container[key]) is not bool:
+                errors.append(f"invalid boolean policy {key}")
+        if definition.get("kind") == "safety" and threshold.get("max") != 0:
+            errors.append("safety must have max=0")
+        if "grader" in definition and not isinstance(definition["grader"], str):
+            errors.append("invalid grader identity")
+    seeds = spec.get("seeds")
+    if seeds is not None and (not isinstance(seeds, list) or not seeds or any(type(s) is not int for s in seeds)
+                              or len(set(seeds)) != len(seeds)):
+        errors.append("invalid policy seed plan")
+    bs = spec.get("bootstrap", {})
+    if not isinstance(bs, dict):
+        errors.append("invalid bootstrap policy")
+    elif (bs.get("method", "percentile") != "percentile" or type(bs.get("rng", 2027)) is not int
+          or type(bs.get("n_resamples", 1000)) is not int or bs.get("n_resamples", 1000) <= 0
+          or not _finite(bs.get("confidence", .95)) or not 0 < bs.get("confidence", .95) < 1):
+        errors.append("invalid paired percentile bootstrap policy")
+    return errors
 
 
 def _ratchet(spec: dict, base_spec: dict) -> list[str]:
@@ -51,7 +94,7 @@ def _ratchet(spec: dict, base_spec: dict) -> list[str]:
             for name in ("kind", "grader", "level"):
                 if name in old and new.get(name) != old[name]:
                     problems.append(f"ratchet: changed evaluator semantics {identity}/{name}")
-    if base_spec.get("seeds") is not None and spec.get("seeds") != base_spec["seeds"]:
+    if base_spec.get("seeds") is not None and set(spec.get("seeds", [])) != set(base_spec["seeds"]):
         problems.append("ratchet: changed seed plan without a new baseline")
     old_bs, new_bs = base_spec.get("bootstrap", {}), spec.get("bootstrap", {})
     for name in ("method", "rng"):
@@ -70,31 +113,20 @@ def integrity_check(pr: dict, base: dict, spec: dict, base_spec: dict | None = N
     Baseline evidence is checked as strictly as PR evidence. No intersection-only pairing,
     missing-value filtering, seed substitution, or relabelled slice can make a run green.
     """
-    problems = []
-    metrics = spec.get("metrics")
-    if not isinstance(metrics, list) or not metrics or any(not isinstance(m, dict) or not m.get("id") for m in metrics):
-        return ["spec requires nonempty metric definitions"]
+    if not isinstance(pr, dict) or not isinstance(base, dict):
+        return ["PR and baseline reports must be objects"]
+    problems = _policy_problems(spec)
+    if problems:
+        return problems
+    metrics = spec["metrics"]
     ids = [m["id"] for m in metrics]
-    if len(set(ids)) != len(ids):
-        problems.append("duplicate metric definition")
-    for m in metrics:
-        for key, value in (m.get("threshold") or {}).items():
-            if key != "no_significant_drop" and not _finite(value):
-                problems.append(f"invalid threshold {m['id']}/{key}")
-        if m.get("kind") == "safety" and (m.get("threshold") or {}).get("max") != 0:
-            problems.append(f"safety {m['id']} must have max=0")
-    slices = spec.get("slices", [])
-    if not isinstance(slices, list) or any(not isinstance(s, dict) or not s.get("name") or s.get("metric") not in ids for s in slices):
-        return problems + ["invalid slice definitions"]
-    if len({(s['name'], s['metric']) for s in slices}) != len(slices):
-        problems.append("duplicate slice definition")
-    for s in slices:
-        for key in ("min", "max"):
-            if key in s and not _finite(s[key]):
-                problems.append(f"invalid slice threshold {s['name']}/{key}")
     if base_spec is None:
-        base_spec = base.get("manifest", {}).get("metric_spec")
+        manifest = base.get("manifest")
+        base_spec = manifest.get("metric_spec") if isinstance(manifest, dict) else None
     if base_spec is not None:
+        invalid = _policy_problems(base_spec)
+        if invalid:
+            return [f"baseline policy: {p}" for p in invalid]
         # check() compares identical eval_set_sha only: changing a version string cannot
         # exempt the exact same evidence from an existing release requirement.
         problems.extend(_ratchet(spec, base_spec))
@@ -137,6 +169,10 @@ def integrity_check(pr: dict, base: dict, spec: dict, base_spec: dict | None = N
             problems.append(f"{title}: manifest seeds differ from spec")
         if not manifest.get("eval_set_sha"):
             problems.append(f"{title}: missing eval_set_sha")
+        if "labels_sha" in manifest and spec.get("labels"):
+            labels = Path(spec["labels"])
+            if not labels.is_file() or manifest["labels_sha"] != evalset.sha12(labels):
+                problems.append(f"{title}: labels SHA differs from evaluation labels")
         if expected_items is not None:
             if count != len(expected_items) or manifest.get("eval_set_sha") != evalset.sha12(Path(spec["eval_set"])):
                 problems.append(f"{title}: manifest differs from source eval set")
@@ -192,10 +228,17 @@ def integrity_check(pr: dict, base: dict, spec: dict, base_spec: dict | None = N
             if any(not _finite(r.get("pass_rate")) or r["pass_rate"] not in (0, 1) for r in rows):
                 problems.append(f"{title}: derived metric needs binary pass_rate rows")
                 continue
-            ks = sorted({int(mid.rsplit("_", 1)[1]) for mid in derived if re.fullmatch(r"pass_(?:at|hat)_\d+", mid)})
-            recomputed = aggregate(rows, row_ids, k_values=ks)
             for mid in derived:
-                want = recomputed.get(mid)
+                try:
+                    if mid == "cost_per_success":
+                        passes = sum(r["pass_rate"] for r in rows)
+                        want = round(sum(r["cost"] for r in rows) / passes, 4) if passes else None
+                    else:
+                        estimates = per_item(report, mid)
+                        want = round(sum(estimates.values()) / len(estimates), 4)
+                except ValueError as exc:
+                    problems.append(f"{title}: invalid derived metric {mid}: {exc}")
+                    continue
                 if not _finite(want) or not math.isclose(values[mid], want, abs_tol=5e-5, rel_tol=1e-9):
                     problems.append(f"{title}: derived aggregate disagrees with rows for {mid}")
     if plans.get("PR") != plans.get("baseline"):
@@ -225,9 +268,10 @@ def slice_check(pr: dict, base: dict, spec: dict) -> tuple[list[str], list[str]]
         verdict, note, value = True, "", None
         pr_counts = Counter(r["item_id"] for r in pr["rows"] if name in r.get("slices", []))
         base_counts = Counter(r["item_id"] for r in base["rows"] if name in r.get("slices", []))
+        field = "pass_rate" if _derived(mid) and mid != "cost_per_success" else mid
         complete = (all(v == len(pr["manifest"]["seeds"]) for v in pr_counts.values())
                     and all(v == len(base["manifest"]["seeds"]) for v in base_counts.values())
-                    and all(_finite(r.get(mid)) for rep in (pr, base) for r in rep["rows"]
+                    and all(_finite(r.get(field)) for rep in (pr, base) for r in rep["rows"]
                             if name in r.get("slices", [])))
         if not a or a.keys() != b.keys() or not complete:
             verdict, note = False, "MISSING/UNPAIRED slice evidence"

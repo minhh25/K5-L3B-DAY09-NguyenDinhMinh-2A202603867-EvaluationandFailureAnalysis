@@ -133,7 +133,9 @@ def run_eval(shape: str, spec: dict[str, Any], seeds: list[int] | None = None) -
                          "dependencies": {name: version(name) for name in ("numpy", "scipy", "pydantic-evals", "PyYAML")},
                          "llm": "MockLLM", "python": platform.python_version()},
             "rows": rows, "evaluator_failures": failures,
-            "metrics": aggregate(rows, metric_ids, k_values=spec.get("pass_k", []),
+            "metrics": aggregate(rows, metric_ids, k_values=sorted(set(spec.get("pass_k", [])) |
+                                 {int(mid.rsplit("_", 1)[1]) for mid in declared
+                                  if re.fullmatch(r"pass_(?:at|hat)_\d+", mid)}),
                                  safety_ids={m["id"] for m in spec["metrics"] if m.get("kind") == "safety"})}
 
 
@@ -170,12 +172,19 @@ def aggregate(rows: list[dict[str, Any]], metric_ids: list[str], k_values: list[
 def per_item(report: dict[str, Any], metric: str, slice_name: str | None = None) -> dict[str, float]:
     """Mean over seeds for each item -- the unit the paired bootstrap resamples.
     With slice_name, keep only rows whose item carries that slice tag (M5)."""
+    derived = re.fullmatch(r"pass_(at|hat)_(\d+)", metric)
     acc: dict[str, list[float]] = {}
     for r in report["rows"]:
         if slice_name is not None and slice_name not in (r.get("slices") or []):
             continue
-        if r.get(metric) is not None:
-            acc.setdefault(r["item_id"], []).append(float(r[metric]))
+        field = "pass_rate" if derived or metric == "pass_5" else metric
+        if r.get(field) is not None:
+            acc.setdefault(r["item_id"], []).append(float(r[field]))
+    if derived:
+        fn = stats.pass_at_k if derived[1] == "at" else stats.pass_hat_k
+        return {key: fn(len(vals), int(sum(vals)), int(derived[2])) for key, vals in acc.items()}
+    if metric == "pass_5":
+        return {key: float(all(vals)) for key, vals in acc.items()}
     return {k: sum(v) / len(v) for k, v in acc.items()}
 
 
